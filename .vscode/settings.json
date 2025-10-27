@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "watchparty",
+            "database": "watchparty",
+            "username": "lee-ngari",
+            "password": "Tabby2023"
+        }
+    ]
+}
