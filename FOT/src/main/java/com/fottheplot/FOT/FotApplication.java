@@ -18,12 +18,6 @@ public class FotApplication {
 	@Bean
 	CommandLineRunner run(RoleRepository roleRepository, DataSeederService dataSeederService) {
 		return args -> {
-			if (roleRepository.findByName("ROLE_USER").isEmpty()) {
-				roleRepository.save(new Role(null, "ROLE_USER"));
-			}
-			if (roleRepository.findByName("ROLE_ADMIN").isEmpty()) {
-				roleRepository.save(new Role(null, "ROLE_ADMIN"));
-			}
 			dataSeederService.seedData();
 		};
 	}

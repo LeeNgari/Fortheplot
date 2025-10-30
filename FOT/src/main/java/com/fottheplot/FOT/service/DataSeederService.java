@@ -5,9 +5,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fottheplot.FOT.dto.SeedDataDto;
 import com.fottheplot.FOT.entity.MediaFile;
 import com.fottheplot.FOT.entity.Movie;
+import com.fottheplot.FOT.entity.Role;
 import com.fottheplot.FOT.entity.TvShow;
+import com.fottheplot.FOT.entity.User;
 import com.fottheplot.FOT.entity.Episode;
 import com.fottheplot.FOT.repository.MovieRepository;
+import com.fottheplot.FOT.repository.UserRepository;
+import com.fottheplot.FOT.repository.RoleRepository;
 import com.fottheplot.FOT.repository.TvShowRepository;
 import com.fottheplot.FOT.repository.MediaFileRepository;
 import org.slf4j.Logger;
@@ -28,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @Service
 public class DataSeederService {
 
@@ -37,18 +43,56 @@ public class DataSeederService {
     private final TvShowRepository tvShowRepository;
     private final MediaFileRepository mediaFileRepository;
     private final ResourceLoader resourceLoader;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
-    public DataSeederService(MovieRepository movieRepository, TvShowRepository tvShowRepository, MediaFileRepository mediaFileRepository, ResourceLoader resourceLoader) {
+    public DataSeederService(MovieRepository movieRepository, TvShowRepository tvShowRepository,
+            MediaFileRepository mediaFileRepository, ResourceLoader resourceLoader, UserRepository userRepository,
+            RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         this.movieRepository = movieRepository;
         this.tvShowRepository = tvShowRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.resourceLoader = resourceLoader;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public void seedData() {
+        if (roleRepository.count() == 0) {
+            Role adminRole = new Role();
+            adminRole.setName("ROLE_ADMIN");
+            roleRepository.save(adminRole);
+
+            Role userRole = new Role();
+            userRole.setName("ROLE_USER");
+            roleRepository.save(userRole);
+        }
+
+        if (userRepository.count() == 0) {
+            Role adminRole = roleRepository.findByName("ROLE_ADMIN").get();
+            Role userRole = roleRepository.findByName("ROLE_USER").get();
+
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setEmail("admin@fottheplot.com");
+            admin.setPassword(passwordEncoder.encode("admin"));
+            admin.getRoles().add(adminRole);
+            admin.getRoles().add(userRole);
+            userRepository.save(admin);
+
+            User user = new User();
+            user.setUsername("user");
+            user.setEmail("user@fottheplot.com");
+            user.setPassword(passwordEncoder.encode("user"));
+            user.getRoles().add(userRole);
+            userRepository.save(user);
+        }
+
         if (movieRepository.count() > 0 || tvShowRepository.count() > 0) {
             logger.info("Database already seeded. Skipping data seeding.");
             return;
@@ -81,7 +125,9 @@ public class DataSeederService {
                 Movie movie = new Movie();
                 movie.setTitle(seedMovieDto.getTitle());
                 movie.setDescription(seedMovieDto.getDescription());
-                                    movie.setReleaseDate(LocalDate.parse(seedMovieDto.getRelease_date() + "-01-01", DateTimeFormatter.ISO_LOCAL_DATE));                movie.setDurationSeconds(parseDuration(seedMovieDto.getDuration()));
+                movie.setReleaseDate(
+                        LocalDate.parse(seedMovieDto.getRelease_date() + "-01-01", DateTimeFormatter.ISO_LOCAL_DATE));
+                movie.setDurationSeconds(parseDuration(seedMovieDto.getDuration()));
                 movie.setGenre(String.join(",", seedMovieDto.getGenre()));
                 movie.setPosterPath(seedMovieDto.getDisplay_pic());
 
@@ -89,9 +135,10 @@ public class DataSeederService {
                     String fileName = mediaFiles.get(movieMediaFileIndex);
                     MediaFile mediaFile = new MediaFile();
                     mediaFile.setFilename(fileName);
-                                            mediaFile.setContentType("video/webm"); // Assuming all are webm
-                                            mediaFile.setSize(0L); // Size will be updated by FileStorageService if needed
-                                            movie.setMediaFile(mediaFile);                    movieMediaFileIndex++;
+                    mediaFile.setContentType("video/webm"); // Assuming all are webm
+                    mediaFile.setSize(0L); // Size will be updated by FileStorageService if needed
+                    movie.setMediaFile(mediaFile);
+                    movieMediaFileIndex++;
                 } else {
                     logger.warn("Not enough media files for all movies. Movie: {}", movie.getTitle());
                 }
@@ -103,7 +150,8 @@ public class DataSeederService {
                 TvShow tvShow = new TvShow();
                 tvShow.setTitle(seedTvShowDto.getTitle());
                 tvShow.setDescription(seedTvShowDto.getDescription());
-                tvShow.setReleaseDate(LocalDate.parse(seedTvShowDto.getRelease_date() + "-01-01", DateTimeFormatter.ISO_LOCAL_DATE));
+                tvShow.setReleaseDate(
+                        LocalDate.parse(seedTvShowDto.getRelease_date() + "-01-01", DateTimeFormatter.ISO_LOCAL_DATE));
                 tvShow.setGenre(String.join(",", seedTvShowDto.getGenre()));
                 tvShow.setPosterPath(seedTvShowDto.getDisplay_pic());
 
@@ -116,7 +164,8 @@ public class DataSeederService {
 
                 // For each episode URL, create an Episode entity
                 for (int i = 0; i < seedTvShowDto.getEpisodes().size(); i++) {
-                    // String episodeUrl = seedTvShowDto.getEpisodes().get(i); // Not used for media file assignment
+                    // String episodeUrl = seedTvShowDto.getEpisodes().get(i); // Not used for media
+                    // file assignment
                     Episode episode = new Episode();
                     episode.setTitle(tvShow.getTitle() + " Episode " + (i + 1)); // Simple naming
                     episode.setEpisodeNumber(i + 1);
@@ -131,7 +180,8 @@ public class DataSeederService {
                         episode.setMediaFile(mediaFile);
                         episodeMediaFileIndex++;
                     } else {
-                        logger.warn("Not enough media files for all episodes. TV Show: {}, Episode: {}", tvShow.getTitle(), episode.getTitle());
+                        logger.warn("Not enough media files for all episodes. TV Show: {}, Episode: {}",
+                                tvShow.getTitle(), episode.getTitle());
                     }
                     tvShow.getEpisodes().add(episode);
                 }

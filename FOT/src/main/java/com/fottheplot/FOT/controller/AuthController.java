@@ -15,10 +15,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,7 +41,7 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = jwtUtil.generateToken((org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal());
+        String token = jwtUtil.generateToken((UserDetails) authentication.getPrincipal());
 
         Cookie cookie = new Cookie("jwt", token);
         cookie.setHttpOnly(true);
@@ -54,8 +52,9 @@ public class AuthController {
         List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
+        String username = ((UserDetails) authentication.getPrincipal()).getUsername();
 
-        return ResponseEntity.ok(ApiResponse.success(new JwtAuthResponse(token, roles)));
+        return ResponseEntity.ok(ApiResponse.success(new JwtAuthResponse(token, roles, username)));
     }
 
     @PostMapping("/register")
@@ -66,5 +65,67 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<AuthStatusResponse>> getAuthStatus() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAuthenticated = authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal());
+        List<String> roles = authentication != null ? authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()) : List.of();
+        String username = null;
+        if (isAuthenticated && authentication.getPrincipal() instanceof UserDetails) {
+            username = ((UserDetails) authentication.getPrincipal()).getUsername();
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(new AuthStatusResponse(isAuthenticated, roles, username)));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("jwt", null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ResponseEntity.ok(ApiResponse.success("Logged out successfully"));
+    }
+}
+
+// DTO for Auth Status Response
+class AuthStatusResponse {
+    private boolean isAuthenticated;
+    private List<String> roles;
+    private String username;
+
+    public AuthStatusResponse(boolean isAuthenticated, List<String> roles, String username) {
+        this.isAuthenticated = isAuthenticated;
+        this.roles = roles;
+        this.username = username;
+    }
+
+    public boolean isAuthenticated() {
+        return isAuthenticated;
+    }
+
+    public void setAuthenticated(boolean authenticated) {
+        isAuthenticated = authenticated;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 }

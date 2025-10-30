@@ -52,6 +52,7 @@ public class RoomService {
                 room.setPassword(passwordEncoder.encode(roomDto.getPassword()));
             }
             room.setHost(user);
+            room.getParticipants().add(user); // Add host as a participant
             room.setMovie(movie);
 
             PlaybackState playbackState = new PlaybackState();
@@ -77,5 +78,9 @@ public class RoomService {
 
     public Room saveRoom(Room room) {
         return roomRepository.save(room);
+    }
+
+    public User findUserByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 }

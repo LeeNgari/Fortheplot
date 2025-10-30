@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "rooms")
 @Data
@@ -29,4 +32,11 @@ public class Room {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "playback_state_id", referencedColumnName = "id")
     private PlaybackState playbackState;
+
+    @ManyToMany
+    @JoinTable(
+            name = "room_participants",
+            joinColumns = @JoinColumn(name = "room_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private List<User> participants = new ArrayList<>();
 }
