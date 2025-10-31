@@ -24,6 +24,6 @@ public class TvShow {
     private String genre;
     private String posterPath;
 
-    @OneToMany(mappedBy = "tvShow", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tvShow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Episode> episodes;
 }
