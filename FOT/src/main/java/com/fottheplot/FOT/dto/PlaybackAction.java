@@ -6,4 +6,5 @@ import lombok.Data;
 public class PlaybackAction {
     private String type;
     private double position;
+    private Long timestamp;
 }

@@ -2,6 +2,7 @@ package com.fottheplot.FOT.controller;
 
 import com.fottheplot.FOT.dto.ApiResponse;
 import com.fottheplot.FOT.dto.SearchResultDto;
+import com.fottheplot.FOT.dto.TvShowDto;
 import com.fottheplot.FOT.entity.Movie;
 import com.fottheplot.FOT.entity.TvShow;
 import com.fottheplot.FOT.service.MovieService;
@@ -36,7 +37,7 @@ public class SearchController {
         logger.info("Received request to search with query: {}", query);
 
         Page<Movie> movies = movieService.getMovies(query, null, pageable);
-        Page<TvShow> tvShows = tvShowService.getTvShows(query, null, pageable);
+        Page<TvShowDto> tvShows = tvShowService.getTvShows(query, null, pageable);
 
         SearchResultDto searchResult = new SearchResultDto(movies.getContent(), tvShows.getContent());
 

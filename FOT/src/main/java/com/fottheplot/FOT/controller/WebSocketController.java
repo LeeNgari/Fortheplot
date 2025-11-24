@@ -54,6 +54,7 @@ public class WebSocketController {
         room.getPlaybackState().setLastUpdated(System.currentTimeMillis());
         roomService.saveRoom(room);
 
+        playbackAction.setTimestamp(room.getPlaybackState().getLastUpdated());
         return playbackAction;
     }
 
@@ -98,6 +99,7 @@ public class WebSocketController {
             PlaybackAction currentPlaybackState = new PlaybackAction();
             currentPlaybackState.setType(room.getPlaybackState().isPlaying() ? "PLAY" : "PAUSE");
             currentPlaybackState.setPosition(room.getPlaybackState().getPosition());
+            currentPlaybackState.setTimestamp(room.getPlaybackState().getLastUpdated());
             messagingTemplate.convertAndSendToUser(username, "/queue/room/" + roomId + "/playback-sync", currentPlaybackState);
         }
     }

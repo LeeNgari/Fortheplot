@@ -33,34 +33,36 @@ public class TvShowController {
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<TvShow>> createTvShow(@RequestParam("metadata") String metadata, @RequestParam("files") List<MultipartFile> files) throws IOException {
+    public ResponseEntity<ApiResponse<TvShowDto>> createTvShow(@RequestParam("metadata") String metadata,
+            @RequestParam("files") List<MultipartFile> files) throws IOException {
         long startTime = System.currentTimeMillis();
         logger.info("Received request to create a new TV show");
         TvShowDto tvShowDto = objectMapper.readValue(metadata, TvShowDto.class);
         TvShow tvShow = tvShowService.createTvShow(tvShowDto, files);
         long timeTaken = System.currentTimeMillis() - startTime;
         logger.info("Finished request to create a new TV show in {} ms", timeTaken);
-        return ResponseEntity.ok(ApiResponse.success(tvShow));
+        return ResponseEntity.ok(ApiResponse.success(tvShowService.convertToDto(tvShow)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<TvShow>>> getTvShows(@RequestParam(required = false) String title, @RequestParam(required = false) String genre, Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<TvShowDto>>> getTvShows(@RequestParam(required = false) String title,
+            @RequestParam(required = false) String genre, Pageable pageable) {
         long startTime = System.currentTimeMillis();
         logger.info("Received request to get TV shows");
-        Page<TvShow> tvShows = tvShowService.getTvShows(title, genre, pageable);
+        Page<TvShowDto> tvShows = tvShowService.getTvShows(title, genre, pageable);
         long timeTaken = System.currentTimeMillis() - startTime;
         logger.info("Finished request to get TV shows in {} ms", timeTaken);
         return ResponseEntity.ok(ApiResponse.success(tvShows));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<TvShow>> getTvShowById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<TvShowDto>> getTvShowById(@PathVariable Long id) {
         long startTime = System.currentTimeMillis();
         logger.info("Received request to get TV show with id {}", id);
         TvShow tvShow = tvShowService.getTvShowById(id);
         long timeTaken = System.currentTimeMillis() - startTime;
         logger.info("Finished request to get TV show with id {} in {} ms", id, timeTaken);
-        return ResponseEntity.ok(ApiResponse.success(tvShow));
+        return ResponseEntity.ok(ApiResponse.success(tvShowService.convertToDto(tvShow)));
     }
 
     @DeleteMapping("/{id}")
@@ -76,10 +78,11 @@ public class TvShowController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<TvShow>> updateTvShow(@PathVariable Long id, @RequestBody TvShowDto tvShowDto) {
+    public ResponseEntity<ApiResponse<TvShowDto>> updateTvShow(@PathVariable Long id,
+            @RequestBody TvShowDto tvShowDto) {
         long startTime = System.currentTimeMillis();
         logger.info("Received request to update TV show with id {}", id);
-        TvShow tvShow = tvShowService.updateTvShow(id, tvShowDto);
+        TvShowDto tvShow = tvShowService.updateTvShow(id, tvShowDto);
         long timeTaken = System.currentTimeMillis() - startTime;
         logger.info("Finished request to update TV show with id {} in {} ms", id, timeTaken);
         return ResponseEntity.ok(ApiResponse.success(tvShow));

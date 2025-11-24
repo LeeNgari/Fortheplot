@@ -1,6 +1,7 @@
 package com.fottheplot.FOT.service;
 
 import com.fottheplot.FOT.dto.EpisodeDto;
+import com.fottheplot.FOT.dto.MediaFileDto;
 import com.fottheplot.FOT.dto.TvShowDto;
 import com.fottheplot.FOT.entity.Episode;
 import com.fottheplot.FOT.entity.MediaFile;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TvShowService {
@@ -28,10 +30,47 @@ public class TvShowService {
     private final EpisodeRepository episodeRepository;
     private final FileStorageService fileStorageService;
 
-    public TvShowService(TvShowRepository tvShowRepository, EpisodeRepository episodeRepository, FileStorageService fileStorageService) {
+    public TvShowService(TvShowRepository tvShowRepository, EpisodeRepository episodeRepository,
+            FileStorageService fileStorageService) {
         this.tvShowRepository = tvShowRepository;
         this.episodeRepository = episodeRepository;
         this.fileStorageService = fileStorageService;
+    }
+
+    public TvShowDto convertToDto(TvShow tvShow) {
+        TvShowDto tvShowDto = new TvShowDto();
+        tvShowDto.setId(tvShow.getId());
+        tvShowDto.setTitle(tvShow.getTitle());
+        tvShowDto.setDescription(tvShow.getDescription());
+        tvShowDto.setReleaseDate(tvShow.getReleaseDate());
+        tvShowDto.setGenre(tvShow.getGenre());
+        tvShowDto.setPosterPath(tvShow.getPosterPath());
+        if (tvShow.getEpisodes() != null) {
+            tvShowDto.setEpisodes(tvShow.getEpisodes().stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList()));
+        }
+        return tvShowDto;
+    }
+
+    private EpisodeDto convertToDto(Episode episode) {
+        EpisodeDto episodeDto = new EpisodeDto();
+        episodeDto.setTitle(episode.getTitle());
+        episodeDto.setEpisodeNumber(episode.getEpisodeNumber());
+        episodeDto.setDurationSeconds(episode.getDurationSeconds());
+        if (episode.getMediaFile() != null) {
+            episodeDto.setMediaFile(convertToDto(episode.getMediaFile()));
+        }
+        return episodeDto;
+    }
+
+    private MediaFileDto convertToDto(MediaFile mediaFile) {
+        MediaFileDto mediaFileDto = new MediaFileDto();
+        mediaFileDto.setId(mediaFile.getId());
+        mediaFileDto.setFilename(mediaFile.getFilename());
+        mediaFileDto.setContentType(mediaFile.getContentType());
+        mediaFileDto.setSize(mediaFile.getSize());
+        return mediaFileDto;
     }
 
     public TvShow createTvShow(TvShowDto tvShowDto, List<MultipartFile> episodeFiles) {
@@ -72,14 +111,15 @@ public class TvShowService {
         }
     }
 
-    public Page<TvShow> getTvShows(String title, String genre, Pageable pageable) {
+    public Page<TvShowDto> getTvShows(String title, String genre, Pageable pageable) {
         Specification<TvShow> spec = Specification.where(TvShowSpecification.titleContains(title))
                 .and(TvShowSpecification.genreEquals(genre));
-        return tvShowRepository.findAll(spec, pageable);
+        return tvShowRepository.findAll(spec, pageable).map(this::convertToDto);
     }
 
     public TvShow getTvShowById(Long id) {
-        return tvShowRepository.findById(id).orElseThrow(() -> new RuntimeException("TV Show not found"));
+        TvShow tvShow = tvShowRepository.findById(id).orElseThrow(() -> new RuntimeException("TV Show not found"));
+        return tvShow;
     }
 
     public void deleteTvShow(Long id) {
@@ -91,7 +131,7 @@ public class TvShowService {
         }
     }
 
-    public TvShow updateTvShow(Long id, TvShowDto tvShowDto) {
+    public TvShowDto updateTvShow(Long id, TvShowDto tvShowDto) {
         try {
             TvShow tvShow = getTvShowById(id);
             tvShow.setTitle(tvShowDto.getTitle());
@@ -100,9 +140,7 @@ public class TvShowService {
             tvShow.setGenre(tvShowDto.getGenre());
             tvShow.setPosterPath(tvShowDto.getPosterPath());
 
-            // TODO: Handle episode updates
-
-            return tvShowRepository.save(tvShow);
+            return convertToDto(tvShowRepository.save(tvShow));
         } catch (Exception e) {
             logger.error("Error updating TV show with id {}", id, e);
             throw new RuntimeException("Error updating TV show");
