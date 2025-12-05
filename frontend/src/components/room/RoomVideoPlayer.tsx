@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Fullscreen, Minimize } from 'lucide-react';
 import { Room as ApiRoom } from '@/types/api';
 
@@ -23,17 +23,32 @@ const RoomVideoPlayer: React.FC<RoomVideoPlayerProps> = ({
   const [isMuted, setIsMuted] = React.useState(true);
   const [isFullScreen, setIsFullScreen] = React.useState(false);
 
+  // Sync UI state with actual video playback state
+  useEffect(() => {
+    const video = moviePlayerRef.current;
+    if (!video) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+    };
+  }, [moviePlayerRef]);
+
   const handlePlayPause = () => {
     if (isHost || isAdmin) {
-      if (moviePlayerRef.current) {
-        if (isPlaying) {
-          moviePlayerRef.current.pause();
-          onPause();
-        } else {
-          moviePlayerRef.current.play();
-          onPlay();
-        }
-        setIsPlaying(!isPlaying);
+      // For host/admin: Only send WebSocket message
+      // The video will be controlled by the incoming WebSocket response
+      // This prevents double-triggering and ensures all users (including host) sync the same way
+      if (isPlaying) {
+        onPause();
+      } else {
+        onPlay();
       }
     }
   };
@@ -67,10 +82,7 @@ const RoomVideoPlayer: React.FC<RoomVideoPlayerProps> = ({
           src={videoSrc}
           title={room.movie?.title || 'Room Video'}
           className="w-full h-full object-contain rounded-md"
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
           muted={true}
-          autoPlay={true}
         />
       )}
 

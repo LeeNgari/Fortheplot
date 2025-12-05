@@ -34,14 +34,12 @@ public class WebSocketController {
     }
 
     @MessageMapping("/room/{roomId}/chat")
-    @SendTo("/topic/room/{roomId}")
-    public ChatMessage sendMessage(@DestinationVariable String roomId, ChatMessage chatMessage) {
-        return chatMessage;
+    public void sendMessage(@DestinationVariable String roomId, ChatMessage chatMessage) {
+        messagingTemplate.convertAndSend("/topic/room/" + roomId, chatMessage);
     }
 
     @MessageMapping("/room/{roomId}/playback")
-    @SendTo("/topic/room/{roomId}/playback")
-    public PlaybackAction handlePlaybackAction(@DestinationVariable Long roomId, PlaybackAction playbackAction, SimpMessageHeaderAccessor headerAccessor) {
+    public void handlePlaybackAction(@DestinationVariable Long roomId, PlaybackAction playbackAction, SimpMessageHeaderAccessor headerAccessor) {
         Room room = roomService.getRoomById(roomId);
         String username = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
 
@@ -55,7 +53,7 @@ public class WebSocketController {
         roomService.saveRoom(room);
 
         playbackAction.setTimestamp(room.getPlaybackState().getLastUpdated());
-        return playbackAction;
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/playback", playbackAction);
     }
 
     @MessageMapping("/room/{roomId}/webrtc/offer")
@@ -90,9 +88,10 @@ public class WebSocketController {
 
         // Broadcast participant update
         List<Participant> participants = room.getParticipants().stream()
-                .map(u -> new Participant(u.getId().toString(), u.getUsername()))
+                .map(u -> new Participant(u.getId().toString(), u.getUsername(), u.getId().equals(room.getHost().getId())))
                 .collect(Collectors.toList());
-        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/participants", new ParticipantUpdate(participants, "JOIN", new Participant(user.getId().toString(), user.getUsername())));
+        Participant currentParticipant = new Participant(user.getId().toString(), user.getUsername(), user.getId().equals(room.getHost().getId()));
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/participants", new ParticipantUpdate(participants, "JOIN", currentParticipant));
 
         // Send current playback state to the newly joined user
         if (room.getMovie() != null && room.getPlaybackState() != null) {
@@ -118,8 +117,9 @@ public class WebSocketController {
 
         // Broadcast participant update
         List<Participant> participants = room.getParticipants().stream()
-                .map(u -> new Participant(u.getId().toString(), u.getUsername()))
+                .map(u -> new Participant(u.getId().toString(), u.getUsername(), u.getId().equals(room.getHost().getId())))
                 .collect(Collectors.toList());
-        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/participants", new ParticipantUpdate(participants, "LEAVE", new Participant(user.getId().toString(), user.getUsername())));
+        Participant currentParticipant = new Participant(user.getId().toString(), user.getUsername(), user.getId().equals(room.getHost().getId()));
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/participants", new ParticipantUpdate(participants, "LEAVE", currentParticipant));
     }
 }

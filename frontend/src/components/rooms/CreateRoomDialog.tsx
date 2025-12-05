@@ -27,7 +27,7 @@ const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({ open, onOpenChange 
     queryFn: () => apiClient.get('/movies').then(res => res.data.content),
   });
 
-  const createRoomMutation = useMutation<Room, Error, { name: string, public: boolean, password?: string, movieId?: number }>({
+  const createRoomMutation = useMutation<Room, Error, { name: string, isPublic: boolean, password?: string, movieId?: number }>({
     mutationFn: (roomData) => apiClient.post('/rooms', roomData).then(res => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['publicRooms'] });
@@ -43,7 +43,7 @@ const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({ open, onOpenChange 
     e.preventDefault();
     createRoomMutation.mutate({
       name: newRoomName,
-      public: newRoomIsPublic,
+      isPublic: newRoomIsPublic,
       password: newRoomPassword || undefined,
       movieId: selectedMovieId,
     });
@@ -76,11 +76,10 @@ const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({ open, onOpenChange 
                 <p className="text-gray-400">No movies available.</p>
               )}
               {allMovies?.map((movie) => (
-                <div 
-                  key={movie.id} 
-                  className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-gray-700 mb-1 ${
-                    selectedMovieId === movie.id ? 'bg-blue-600 hover:bg-blue-500' : ''
-                  }`}
+                <div
+                  key={movie.id}
+                  className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-gray-700 mb-1 ${selectedMovieId === movie.id ? 'bg-blue-600 hover:bg-blue-500' : ''
+                    }`}
                   onClick={() => setSelectedMovieId(movie.id)}
                 >
                   <img src={movie.posterPath} alt={movie.title} className="w-12 h-18 object-cover rounded-sm" />

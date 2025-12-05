@@ -33,7 +33,7 @@ public class Room {
     @JoinColumn(name = "playback_state_id", referencedColumnName = "id")
     private PlaybackState playbackState;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "room_participants",
             joinColumns = @JoinColumn(name = "room_id"),

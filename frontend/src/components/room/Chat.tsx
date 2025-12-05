@@ -4,15 +4,16 @@ import React from 'react';
 interface ChatMessage {
   sender: string;
   content: string;
-  type: 'CHAT' | 'JOIN' | 'LEAVE';
+  type: 'CHAT' | 'JOIN' | 'LEAVE' | 'REACTION';
 }
 
 interface ChatProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
+  onSendReaction: (emoji: string) => void;
 }
 
-const Chat: React.FC<ChatProps> = ({ messages, onSendMessage }) => {
+const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, onSendReaction }) => {
   const [newMessage, setNewMessage] = React.useState('');
 
   const handleSendMessage = () => {
@@ -23,17 +24,40 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white/5 rounded-xl border border-white/10 p-4">
-      <h3 className="text-white font-light mb-4">Chat</h3>
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+    <div className="flex-1 flex flex-col min-h-0 max-h-[400px]">
+      <h3 className="text-white font-semibold mb-3 text-sm">Chat</h3>
+
+      <div className="flex-1 overflow-y-auto mb-3 space-y-2 pr-2 max-h-[250px]">
         {messages.map((msg, index) => (
-          <div key={index} className="text-sm">
-            {msg.type === 'JOIN' || msg.type === 'LEAVE' ? (
-              <p className="text-gray-400 italic">{msg.sender} {msg.content}</p>
+          <div
+            key={index}
+            className={`text-xs ${msg.type === 'CHAT'
+                ? 'text-white/90'
+                : 'text-white/50 italic text-center'
+              }`}
+          >
+            {msg.type === 'CHAT' ? (
+              <>
+                <span className="font-semibold text-red-400">{msg.sender}:</span>{' '}
+                {msg.content}
+              </>
+            ) : msg.type === 'JOIN' ? (
+              `${msg.sender} joined the room`
             ) : (
-              <p><span className="font-medium text-white">{msg.sender}:</span> <span className="text-gray-200">{msg.content}</span></p>
+              `${msg.sender} left the room`
             )}
           </div>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-2">
+        {['🔥', '😂', '❤️', '😮', '👏'].map((emoji) => (
+          <button
+            key={emoji}
+            onClick={() => onSendReaction(emoji)}
+            className="text-lg hover:scale-125 transition-transform"
+          >
+            {emoji}
+          </button>
         ))}
       </div>
       <div className="flex gap-2">
@@ -43,12 +67,12 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage }) => {
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           placeholder="Type a message..."
-          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white/80 text-sm"
+          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-1.5 text-white/80 text-xs"
         />
         <button
           type="button"
           onClick={handleSendMessage}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
         >
           Send
         </button>

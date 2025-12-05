@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Participant {
     private String id;
-    private String username;
+    private String name;
+    private boolean isHost;
 }

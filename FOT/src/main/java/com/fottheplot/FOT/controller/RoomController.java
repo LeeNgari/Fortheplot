@@ -23,9 +23,12 @@ public class RoomController {
     private final RoomService roomService;
     private final MovieService movieService;
 
-    public RoomController(RoomService roomService, MovieService movieService) {
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+    public RoomController(RoomService roomService, MovieService movieService, org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
         this.roomService = roomService;
         this.movieService = movieService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @PostMapping
@@ -68,6 +71,9 @@ public class RoomController {
 
         room.setMovie(movie);
         room = roomService.saveRoom(room);
+
+        // Broadcast room update
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/updated", room);
 
         logger.info("Room after update: {}", room);
         if (room.getMovie() != null) {
